@@ -23,6 +23,7 @@
 local CONTEXTACTIONSERVICE = game:GetService('ContextActionService')
 local PLAYERSERVICE = game:GetService('Players')
 local USERINPUTSERVICE = game:GetService('UserInputService')
+local TWEENSERVICE = game:GetService("TweenService")
 
 
 local finity = {}
@@ -412,11 +413,31 @@ function finity.new(isdark, gprojectName, thinProject)
 	uipadding = nil
 	
 	local uilistlayout = self:Create("UIListLayout", {
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		SortOrder = Enum.SortOrder.LayoutOrder
 	})
 	uilistlayout.Parent = self2.sidebar
 	uilistlayout = nil
 	
+	--[[
+	local Logo = self:Create("ImageLabel", {
+		Name = "Logo",
+		Transparency = 1,
+		Size = UDim2.new(0, 75, 0, 75),
+		ZIndex = 2,
+		Image = "http://www.roblox.com/asset/?id=5850610883"
+	})
+	Logo.Parent = self2.sidebar
+	
+
+	Logo.MouseEnter:Connect(function()
+		TWEENSERVICE:Create(Logo, TweenInfo.new(0.1), {Size = UDim2.new(0, 80, 0, 80)}):Play()
+	end)
+	
+	Logo.MouseLeave:Connect(function()
+		TWEENSERVICE:Create(Logo, TweenInfo.new(0.1), {Size = UDim2.new(0, 75, 0, 75)}):Play()
+	end)
+	]]
 	
 	-- Keybinds --			
 	local CarouselFrame = finity:Create("Frame", {
@@ -1062,17 +1083,7 @@ function finity.new(isdark, gprojectName, thinProject)
 			function sector:Dropdown(name, data, callback)
 				local cheat = CreateUiContentFrame(name)
 				
-				if data then
-					cheat.value = data[1]
-				else
-					cheat.value = 'none'
-				end
-				
-				local options
-				
-				if data and data then
-					options = data
-				end
+				cheat.value = data[1] or 'none'
 				
 				cheat.dropped = false
 				
@@ -1132,7 +1143,30 @@ function finity.new(isdark, gprojectName, thinProject)
 				uipadding.Parent = cheat.list
 				uipadding = nil
 				
-				local function refreshOptions()
+				
+				function cheat.fadelist()
+					cheat.dropped = not cheat.dropped
+
+					if cheat.dropped then
+						for _, button in next, cheat.list:GetChildren() do
+							if button:IsA("TextButton") then
+								game:GetService("TweenService"):Create(button, TweenInfo.new(0.2), {TextTransparency = 0}):Play()
+							end
+						end
+
+						game:GetService("TweenService"):Create(cheat.list, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, math.clamp(cheat.list["UIListLayout"].AbsoluteContentSize.Y, 0, 150)), Position = UDim2.new(0, 0, 1, 0), ScrollBarImageTransparency = 0, BackgroundTransparency = 0.25}):Play()
+					else
+						for _, button in ipairs(cheat.list:GetChildren()) do
+							if button:IsA("TextButton") then
+								game:GetService("TweenService"):Create(button, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
+							end
+						end
+
+						game:GetService("TweenService"):Create(cheat.list, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 1, 0), ScrollBarImageTransparency = 1, BackgroundTransparency = 1}):Play()
+					end
+				end
+				
+				local function DestroyOptions()
 					if cheat.dropped then
 						cheat.fadelist()
 					end	
@@ -1143,20 +1177,23 @@ function finity.new(isdark, gprojectName, thinProject)
 						end
 					end
 					
-					for i, v in ipairs(options) do
+					game:GetService("TweenService"):Create(cheat.list, TweenInfo.new(0), {Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 1, 0), CanvasSize = UDim2.new(0, 0, 0, cheat.list["UIListLayout"].AbsoluteContentSize.Y), ScrollBarImageTransparency = 1, BackgroundTransparency = 1}):Play()
+				end
+				
+				local function CreateOptions(NewOptions)
+					for i, v in ipairs(NewOptions) do
 						local button = finity:Create("TextButton", {
 							BackgroundColor3 = Color3.new(1, 1, 1),
 							BackgroundTransparency = 1,
 							Size = UDim2.new(1, 0, 0, 20),
 							ZIndex = 3,
 							Font = Enum.Font.Gotham,
-							Text = v,
+							Text = tostring(v),
 							TextColor3 = theme.dropdown_text,
 							TextSize = 13
 						})
-						
 						button.Parent = cheat.list
-						
+
 						button.MouseEnter:Connect(function()
 							game:GetService("TweenService"):Create(button, TweenInfo.new(0.1), {TextColor3 = theme.dropdown_text_hover}):Play()
 						end)
@@ -1166,45 +1203,24 @@ function finity.new(isdark, gprojectName, thinProject)
 						button.MouseButton1Click:Connect(function()
 							if cheat.dropped then
 								cheat.value = v
-								cheat.selected.Text = v
-								
+								cheat.selected.Text = tostring(v)
+
 								cheat.fadelist()
-								
+
 								if callback then
-									coroutine.wrap(callback)(cheat.value)
+									coroutine.wrap(callback)(v)
 								end
 							end
 						end)
 						
+						if cheat.value == v then
+							cheat.selected.Text = tostring(v)
+						end
 						
 						game:GetService("TweenService"):Create(button, TweenInfo.new(0), {TextTransparency = 1}):Play()
 					end
-					
-					game:GetService("TweenService"):Create(cheat.list, TweenInfo.new(0), {Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 1, 0), CanvasSize = UDim2.new(0, 0, 0, cheat.list["UIListLayout"].AbsoluteContentSize.Y), ScrollBarImageTransparency = 1, BackgroundTransparency = 1}):Play()
 				end
-				
-				
-				function cheat.fadelist()
-					cheat.dropped = not cheat.dropped
-					
-					if cheat.dropped then
-						for _, button in next, cheat.list:GetChildren() do
-							if button:IsA("TextButton") then
-								game:GetService("TweenService"):Create(button, TweenInfo.new(0.2), {TextTransparency = 0}):Play()
-							end
-						end
-						
-						game:GetService("TweenService"):Create(cheat.list, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, math.clamp(cheat.list["UIListLayout"].AbsoluteContentSize.Y, 0, 150)), Position = UDim2.new(0, 0, 1, 0), ScrollBarImageTransparency = 0, BackgroundTransparency = 0.25}):Play()
-					else
-						for _, button in ipairs(cheat.list:GetChildren()) do
-							if button:IsA("TextButton") then
-								game:GetService("TweenService"):Create(button, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
-							end
-						end
-						
-						game:GetService("TweenService"):Create(cheat.list, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 1, 0), ScrollBarImageTransparency = 1, BackgroundTransparency = 1}):Play()
-					end
-				end
+
 				
 				cheat.dropdown.MouseEnter:Connect(function()
 					game:GetService("TweenService"):Create(cheat.selected, TweenInfo.new(0.1), {TextColor3 = theme.dropdown_text_hover}):Play()
@@ -1216,7 +1232,8 @@ function finity.new(isdark, gprojectName, thinProject)
 					cheat.fadelist()
 				end)
 				
-				refreshOptions()
+				DestroyOptions()
+				CreateOptions(data)
 				
 				cheat.selected.Parent = cheat.dropdown
 				cheat.dropdown.Parent = cheat.container
@@ -1224,25 +1241,15 @@ function finity.new(isdark, gprojectName, thinProject)
 				
 				local RefreshFunctions = {}
 				
-				function RefreshFunctions:RefreshOptions(newoptions)
-					options = newoptions
-					cheat.value = data[1]
-					cheat.selected.Text = data[1]
+				function RefreshFunctions:Refresh(Selected, NewOptions)
+					cheat.value = Selected
+					cheat.selected.Text = tostring(Selected)
 					
-					refreshOptions()
-				end
-				
-				function RefreshFunctions:SetValue(value)
-					cheat.selected.Text = value
-					cheat.value = value
-					
-					if cheat.dropped then
-						cheat.fadelist()
+					if NewOptions then
+						DestroyOptions()
+						CreateOptions(NewOptions)
 					end
 					
-					if callback then
-						coroutine.wrap(callback)(cheat.value)
-					end
 				end
 				
 				return RefreshFunctions
